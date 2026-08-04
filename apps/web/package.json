@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "author": "Ives Furtado | @ivesfurtado",
+  "author": "Ravinder",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,15 +10,21 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@monorepo/types": "workspace:*",
     "@monorepo/ui": "workspace:*",
     "@monorepo/utils": "workspace:*",
+    "@tanstack/react-query": "^5.101.4",
+    "better-auth": "^1.6.25",
     "class-variance-authority": "^0.7.1",
     "lucide-react": "^1.8.0",
     "next": "^16.2.3",
     "next-themes": "^0.4.6",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-hook-form": "^7.72.1",
+    "socket.io-client": "^4.8.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^16.2.3",

@@ -74,16 +74,6 @@ The system should:
 -   AI settings
 -   Local prototype
 
-## Out of Scope
-
--   Group chat
--   Voice
--   Image understanding
--   Multi-agent collaboration
--   Calendar integration
--   External tools
--   Long-term semantic memory (future enhancement)
-
 ------------------------------------------------------------------------
 
 # 5. Functional Requirements
@@ -332,19 +322,7 @@ server/
 
 ------------------------------------------------------------------------
 
-# 16. Future Enhancements
-
--   RAG with pgvector
--   Long-term memory
--   Tool calling
--   Calendar integration
--   Email integration
--   Voice AI
--   Multi-agent collaboration
-
-------------------------------------------------------------------------
-
-# 17. Success Criteria
+# 16. Success Criteria
 
 The feature is successful if:
 
