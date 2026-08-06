@@ -254,7 +254,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* Conversation list */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex flex-col gap-0.5 p-2">
             {convsLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
@@ -279,7 +279,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
               ))
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Current user info */}
         {me && (
