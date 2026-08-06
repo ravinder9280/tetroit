@@ -15,12 +15,14 @@ import {
   DialogTrigger,
 } from "@monorepo/ui/components/dialog";
 import {
+  Bot,
   LogOut,
   MessageCircle,
   Plus,
   Search,
+  UserCircle2,
 } from "lucide-react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { signOut, useSession } from "@/lib/auth-client";
@@ -198,6 +200,7 @@ function ConversationItem({
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const params = useParams();
+  const pathname = usePathname();
   const activeConvId = params?.conversationId as string | undefined;
 
   const { data: session, isPending: sessionLoading } = useSession();
@@ -291,15 +294,43 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
               <p className="text-xs font-medium truncate">{me.name}</p>
               <p className="text-[10px] text-muted-foreground truncate">{me.email}</p>
             </div>
-            <Button
-              id="sign-out-btn"
-              size="icon"
-              variant="ghost"
-              className="size-8"
-              onClick={handleSignOut}
-            >
-              <LogOut className="size-4" />
-            </Button>
+            <div className="flex items-center gap-0.5">
+              <Button
+                id="profile-nav-btn"
+                size="icon"
+                variant="ghost"
+                className={cn(
+                  "size-8",
+                  pathname === "/chat/profile" && "bg-accent text-accent-foreground"
+                )}
+                onClick={() => router.push("/chat/profile")}
+                title="Profile"
+              >
+                <UserCircle2 className="size-4" />
+              </Button>
+              <Button
+                id="ai-settings-nav-btn"
+                size="icon"
+                variant="ghost"
+                className={cn(
+                  "size-8",
+                  pathname === "/chat/settings" && "bg-accent text-accent-foreground"
+                )}
+                onClick={() => router.push("/chat/settings")}
+                title="AI Settings"
+              >
+                <Bot className="size-4" />
+              </Button>
+              <Button
+                id="sign-out-btn"
+                size="icon"
+                variant="ghost"
+                className="size-8"
+                onClick={handleSignOut}
+              >
+                <LogOut className="size-4" />
+              </Button>
+            </div>
           </div>
         )}
       </aside>
