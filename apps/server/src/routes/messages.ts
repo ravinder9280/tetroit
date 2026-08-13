@@ -30,13 +30,16 @@ messagesRouter.get(
       return;
     }
 
+    // Fetch the 50 most-recent messages (desc), then reverse so the UI renders
+    // oldest-first. Using asc+take:50 previously returned only the oldest 50,
+    // causing newer messages to be absent from the DB response.
     const messages = await prisma.message.findMany({
       where: { conversationId: conversationId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
 
-    const result: MessageDTO[] = messages.map((m) => ({
+    const result: MessageDTO[] = messages.reverse().map((m) => ({
       id: m.id,
       conversationId: m.conversationId,
       senderId: m.senderId,

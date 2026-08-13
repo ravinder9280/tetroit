@@ -96,4 +96,36 @@ export class AIOrchestrator {
 
     return { replied: true, reply };
   }
+
+  /**
+   * Generate a draft reply regardless of AI mode.
+   * Used for the MANUAL trigger flow where the user explicitly requests a draft.
+   * Bypasses shouldRespond() — always runs the full pipeline.
+   */
+  async generateDraft(input: OrchestratorInput): Promise<string> {
+    aiLogger.info("Generating draft (manual trigger)", {
+      receiverId: input.receiverId,
+    });
+
+    const ctx = await this.contextBuilder.build(
+      input.receiverId,
+      input.conversationId,
+      input.incomingMessage
+    );
+
+    aiLogger.step("PROMPT_BUILT", { receiverId: input.receiverId });
+    const { systemPrompt, userPrompt } = this.promptBuilder.build(ctx);
+
+    aiLogger.step("PROVIDER_SELECTED", {
+      provider: this.provider.providerName,
+    });
+    const reply = await this.provider.generateReply(systemPrompt, userPrompt);
+
+    aiLogger.step("RESPONSE_GENERATED", {
+      provider: this.provider.providerName,
+      replyLength: reply.length,
+    });
+
+    return reply;
+  }
 }

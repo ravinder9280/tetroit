@@ -36,3 +36,29 @@ export interface SendMessagePayload {
 
 /** Server → Client: a message was received */
 export type MessageReceivedPayload = MessageDTO;
+
+// ─── AI Socket payload types ──────────────────────────────────────────────────
+
+/** Server → Client: AI is typing (show typing indicator) */
+export interface AITypingPayload {
+  conversationId: string;
+  receiverId: string; // The AI "sender" (the receiver of the original message)
+}
+
+/** Server → Client: AI reply stored and ready (same shape as message-received) */
+export type AIReplyPayload = MessageDTO;
+
+/** Server → Client: AI draft generated (MANUAL mode, not persisted) */
+export interface AIDraftPayload {
+  conversationId: string;
+  draft: string;
+}
+
+/** Client → Server: user explicitly requests an AI draft (MANUAL mode) */
+export interface GenerateAIReplyPayload {
+  conversationId: string;
+  receiverId: string;
+  /** The original message content to reply to */
+  content: string;
+}
+

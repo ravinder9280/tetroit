@@ -8,5 +8,8 @@ export function useMessages(conversationId: string | null) {
     queryFn: () =>
       api.get<MessageDTO[]>(`/conversations/${conversationId}/messages`),
     enabled: !!conversationId,
+    staleTime: 0,            // always consider data stale
+    refetchOnMount: "always", // always re-fetch from DB on mount, even if cache exists
+    refetchOnWindowFocus: true, // re-fetch when tab regains focus
   });
 }

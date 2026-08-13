@@ -7,6 +7,7 @@ import { Button } from "@monorepo/ui/components/button";
 import { Input } from "@monorepo/ui/components/input";
 import { ScrollArea } from "@monorepo/ui/components/scroll-area";
 import { Skeleton } from "@monorepo/ui/components/skeleton";
+import { AISettingsDialog } from "@/components/ai-settings-dialog";
 import {
   Dialog,
   DialogContent,
@@ -244,7 +245,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
       {/* ── Sidebar ────────────────────────────────────────────────── */}
       <aside className="w-80 shrink-0 md:flex flex-col border-r border-border hidden ">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between px-4 h-15 border-b border-border">
           <div className="flex items-center gap-2">
             <MessageCircle className="size-5 text-primary" />
             <h1 className="font-semibold text-sm">Tetroit Chat</h1>
@@ -286,13 +287,13 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
         {/* Current user info */}
         {me && (
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-2.5 px-4 py-3 border-t bg-neutral-800/50 border-border ">
             <Avatar className="size-7">
               <AvatarFallback className="text-xs">{initials(me.name)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate">{me.name}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{me.email}</p>
+              <p className="text-sm font-medium truncate">{me.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{me.email}</p>
             </div>
             <div className="flex items-center gap-0.5">
               <Button
@@ -308,25 +309,26 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
               >
                 <UserCircle2 className="size-4" />
               </Button>
-              <Button
-                id="ai-settings-nav-btn"
-                size="icon"
-                variant="ghost"
-                className={cn(
-                  "size-8",
-                  pathname === "/chat/settings" && "bg-accent text-accent-foreground"
-                )}
-                onClick={() => router.push("/chat/settings")}
-                title="AI Settings"
-              >
-                <Bot className="size-4" />
-              </Button>
+              <AISettingsDialog
+                trigger={
+                  <Button
+                    id="ai-settings-nav-btn"
+                    size="icon"
+                    variant="ghost"
+                    className="size-8"
+                    title="AI Settings"
+                  >
+                    <Bot className="size-4" />
+                  </Button>
+                }
+              />
               <Button
                 id="sign-out-btn"
                 size="icon"
                 variant="ghost"
-                className="size-8"
+                className="size-8 text-red-400"
                 onClick={handleSignOut}
+                title="Log out"
               >
                 <LogOut className="size-4" />
               </Button>

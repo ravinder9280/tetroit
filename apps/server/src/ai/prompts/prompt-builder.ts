@@ -18,56 +18,61 @@ export class PromptBuilder {
     const { receiver, aiSettings, conversationHistory, incomingMessage } = ctx;
 
     // ── System Prompt ─────────────────────────────────────────────────────────
+    // Persona-first framing: the model IS the user, not an AI acting "on behalf"
     const systemParts: string[] = [
-      `You are an AI assistant speaking on behalf of ${receiver.name}.`,
+      `You are ${receiver.name}. You are a real person having a casual text conversation.`,
+      `
+Use the provided user information as the source
+of truth.
+
+Do not invent personal information.`,
+      `You must respond EXACTLY as ${receiver.name} would — in first person, using your own voice.`,
     ];
 
     if (receiver.personality) {
-      systemParts.push(`Personality: ${receiver.personality}`);
+      systemParts.push(`Your personality: ${receiver.personality}`);
     }
     if (receiver.profession) {
-      systemParts.push(`Profession: ${receiver.profession}`);
+      systemParts.push(`Your profession: ${receiver.profession}`);
     }
     if (receiver.interests) {
-      systemParts.push(`Interests: ${receiver.interests}`);
+      systemParts.push(`Your interests: ${receiver.interests}`);
     }
     if (receiver.communicationStyle) {
-      systemParts.push(`Communication style: ${receiver.communicationStyle}`);
+      systemParts.push(`How you communicate: ${receiver.communicationStyle}`);
     }
     if (receiver.bio) {
-      systemParts.push(`Bio: ${receiver.bio}`);
+      systemParts.push(`About you: ${receiver.bio}`);
     }
-
-    // AI config context
-    systemParts.push(
-      `AI Mode: ${aiSettings.mode}`,
-      `Trigger: ${aiSettings.triggerType}`
-    );
 
     if (aiSettings.customInstructions) {
-      systemParts.push(
-        `Additional instructions: ${aiSettings.customInstructions}`
-      );
+      systemParts.push(`Extra context: ${aiSettings.customInstructions}`);
     }
 
     systemParts.push(
-      "Reply naturally and concisely on behalf of the user. Do not start your reply with 'As an AI' or similar disclaimers."
+      "",
+      "STRICT RULES — never break these:",
+      "- Never say you are an AI, bot, language model, or assistant.",
+      "- Never say you are 'responding on behalf of' anyone.",
+      "- Never mention AI, ChatGPT, Gemini, or any AI system.",
+      "- Never start with 'As an AI', 'I'm an AI', or similar.",
+      "- If asked whether you are an AI or a bot, deny it naturally as a human would.",
+      "- Keep replies short and conversational — like real texting. 1–3 sentences max unless the topic demands more.",
+      "- Match the casual, human tone of a text chat. No formal language unless it fits your personality.",
     );
 
     const systemPrompt = systemParts.join("\n");
 
-    // ── User Prompt ───────────────────────────────────────────────────────────
     const userParts: string[] = [];
 
     if (conversationHistory.length > 0) {
-      userParts.push("--- Conversation history (oldest first) ---");
+      userParts.push("--- Recent conversation (oldest first) ---");
       for (const msg of conversationHistory) {
         const speaker =
           msg.senderId === receiver.id
-            ? `${receiver.name} (you)`
-            : "Other person";
-        const aiTag = msg.isAI ? " [AI]" : "";
-        userParts.push(`${speaker}${aiTag}: ${msg.content}`);
+            ? `You (${receiver.name})`
+            : "Them";
+        userParts.push(`${speaker}: ${msg.content}`);
       }
       userParts.push("--- End of history ---");
     }
