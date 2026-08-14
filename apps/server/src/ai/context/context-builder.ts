@@ -1,7 +1,3 @@
-// ─── Context Builder ──────────────────────────────────────────────────────────
-// Single responsibility: assemble an AIContext from the database.
-// The orchestrator calls this; it knows nothing about prompts or providers.
-
 import { prisma } from "../../lib/db.js";
 import type { AIContext, AIUserProfile } from "../types/ai-context.type.js";
 import { aiLogger } from "../utils/logger.js";
@@ -9,19 +5,11 @@ import { aiLogger } from "../utils/logger.js";
 const HISTORY_LIMIT = 20;
 
 export class ContextBuilder {
-  /**
-   * Build the full AIContext for a given message event.
-   *
-   * @param receiverId      - The user whose AI agent should respond
-   * @param conversationId  - The conversation where the message was sent
-   * @param incomingMessage - The new message that arrived
-   */
   async build(
     receiverId: string,
     conversationId: string,
     incomingMessage: { senderId: string; content: string }
   ): Promise<AIContext> {
-    // 1. Load receiver profile
     aiLogger.step("LOADING_PROFILE", { receiverId });
     const receiver = await prisma.user.findUnique({
       where: { id: receiverId },
@@ -57,7 +45,6 @@ export class ContextBuilder {
       communicationStyle: receiver.communicationStyle,
     };
 
-    // 2. Load conversation history
     aiLogger.step("LOADING_CONTEXT", { conversationId, limit: HISTORY_LIMIT });
     const history = await prisma.message.findMany({
       where: { conversationId },
@@ -71,7 +58,6 @@ export class ContextBuilder {
       },
     });
 
-    // Reverse so messages are in chronological order (oldest first)
     history.reverse();
 
     return {

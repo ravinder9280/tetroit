@@ -18,15 +18,8 @@ import { AI_FALLBACK_REPLY, AIProviderError } from "../ai/errors/ai-errors.js";
 
 let io: SocketServer;
 
-// ─── Singletons ───────────────────────────────────────────────────────────────
-
 const aiSettingsService = new AISettingsService();
 
-/**
- * Lazily create the orchestrator with GeminiProvider.
- * We lazy-init so that a missing GEMINI_API_KEY only throws when the first
- * AI message actually fires — not on server startup (safer DX during testing).
- */
 let _orchestrator: AIOrchestrator | null = null;
 
 function getOrchestrator(): AIOrchestrator {
@@ -36,16 +29,11 @@ function getOrchestrator(): AIOrchestrator {
   return _orchestrator;
 }
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-/** Artificial delay before sending the AI reply (simulates natural typing) */
 const TYPING_DELAY_MS = Number(process.env["AI_TYPING_DELAY_MS"] ?? 1000);
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-// ─── Validation Schemas ───────────────────────────────────────────────────────
 
 const sendMessageSchema = z.object({
   conversationId: z.string().min(1),
@@ -59,12 +47,6 @@ const generateAIReplySchema = z.object({
   content: z.string().min(1).max(5000),
 });
 
-// ─── AI Pipeline Helpers ──────────────────────────────────────────────────────
-
-/**
- * Handle AUTOMATIC mode: generate and emit an AI reply.
- * Errors are caught here — chat delivery is NEVER blocked by AI failures.
- */
 async function handleAutomaticAI(params: {
   senderId: string;
   receiverId: string;
@@ -79,15 +61,12 @@ async function handleAutomaticAI(params: {
       conversationId,
     });
 
-    // 1. Emit typing indicator to the sender
     const typingPayload: AITypingPayload = { conversationId, receiverId };
     io.to(senderId).to(receiverId).emit("ai-typing", typingPayload);
     aiLogger.info("[AI] Socket emitted: ai-typing", { senderId });
 
-    // 2. Artificial delay to simulate natural typing
     await sleep(TYPING_DELAY_MS);
 
-    // 3. Run the full AI pipeline
     const result = await getOrchestrator().run({
       receiverId,
       conversationId,
@@ -106,13 +85,12 @@ async function handleAutomaticAI(params: {
       replyLength: replyText.length,
     });
 
-    // 4. Save AI message to DB (senderId = receiverId because AI speaks as them)
     aiLogger.info("[AI] Saving AI message to DB");
     const aiMessage = await prisma.message.create({
       data: {
         conversationId,
-        senderId: receiverId,   // AI speaks on behalf of the receiver
-        receiverId: senderId,   // directed back to the human sender
+        senderId: receiverId,
+        receiverId: senderId,
         content: replyText,
         isAI: true,
       },
@@ -123,7 +101,6 @@ async function handleAutomaticAI(params: {
       data: { updatedAt: new Date() },
     });
 
-    // 5. Emit message-received (treated like a normal message)
     const messagePayload: MessageReceivedPayload = {
       id: aiMessage.id,
       conversationId: aiMessage.conversationId,
@@ -136,7 +113,6 @@ async function handleAutomaticAI(params: {
 
     io.to(senderId).to(receiverId).emit("message-received", messagePayload);
 
-    // 6. Also emit ai-reply (lets the frontend apply specific AI reply logic)
     const aiReplyPayload: AIReplyPayload = messagePayload;
     io.to(senderId).emit("ai-reply", aiReplyPayload);
 
@@ -146,7 +122,6 @@ async function handleAutomaticAI(params: {
   } catch (err) {
     aiLogger.error("[AI] Pipeline error in AUTOMATIC mode", err);
 
-    // Emit a safe fallback as an AI message so the conversation doesn't just hang
     try {
       const fallbackMessage = await prisma.message.create({
         data: {
@@ -174,10 +149,6 @@ async function handleAutomaticAI(params: {
   }
 }
 
-/**
- * Handle MANUAL mode draft generation.
- * Result is emitted only to the requester — nothing is persisted.
- */
 async function handleManualDraft(params: {
   requesterId: string;
   receiverId: string;
@@ -212,7 +183,6 @@ async function handleManualDraft(params: {
       err
     );
 
-    // Emit a fallback draft so the UI isn't left waiting
     const draftPayload: AIDraftPayload = {
       conversationId,
       draft: AI_FALLBACK_REPLY,
@@ -220,8 +190,6 @@ async function handleManualDraft(params: {
     io.to(requesterId).emit("ai-draft", draftPayload);
   }
 }
-
-// ─── Socket Initialization ────────────────────────────────────────────────────
 
 export function initSocket(httpServer: HttpServer): SocketServer {
   io = new SocketServer(httpServer, {
@@ -234,13 +202,11 @@ export function initSocket(httpServer: HttpServer): SocketServer {
   io.on("connection", (socket) => {
     console.log(`[socket] client connected: ${socket.id}`);
 
-    // Each user joins a personal room so we can target them directly
     socket.on("join", (userId: string) => {
       socket.join(userId);
       console.log(`[socket] ${socket.id} joined room: ${userId}`);
     });
 
-    // ── send-message ─────────────────────────────────────────────────────────
     socket.on("send-message", async (raw: SendMessagePayload) => {
       const parsed = sendMessageSchema.safeParse(raw);
       if (!parsed.success) {
@@ -250,7 +216,6 @@ export function initSocket(httpServer: HttpServer): SocketServer {
 
       const { conversationId, receiverId, content } = parsed.data;
 
-      // Resolve senderId from the socket's rooms (the "join" event set it)
       const rooms = [...socket.rooms].filter((r) => r !== socket.id);
       const senderId = rooms[0];
 
@@ -259,7 +224,6 @@ export function initSocket(httpServer: HttpServer): SocketServer {
         return;
       }
 
-      // Verify sender is a participant in this conversation
       const conversation = await prisma.conversation.findFirst({
         where: {
           id: conversationId,
@@ -275,7 +239,6 @@ export function initSocket(httpServer: HttpServer): SocketServer {
         return;
       }
 
-      // Persist the human message to DB
       const message = await prisma.message.create({
         data: {
           conversationId,
@@ -301,12 +264,8 @@ export function initSocket(httpServer: HttpServer): SocketServer {
         createdAt: message.createdAt.toISOString(),
       };
 
-      // Deliver the human message to both parties immediately
       io.to(senderId).to(receiverId).emit("message-received", payload);
 
-      // ── AI Pipeline ─────────────────────────────────────────────────────────
-      // Check receiver's AI settings and run the appropriate flow.
-      // Errors are contained — chat delivery is never blocked.
       void (async () => {
         try {
           aiLogger.step("INCOMING_MESSAGE", {
@@ -325,7 +284,6 @@ export function initSocket(httpServer: HttpServer): SocketServer {
               { receiverId }
             );
           } else if (aiSettings.mode === "AUTOMATIC") {
-            // Only ALWAYS trigger is implemented; others are placeholders
             if (aiSettings.triggerType === "ALWAYS") {
               await handleAutomaticAI({
                 senderId,
@@ -346,7 +304,6 @@ export function initSocket(httpServer: HttpServer): SocketServer {
       })();
     });
 
-    // ── generate-ai-reply — MANUAL mode trigger ───────────────────────────────
     socket.on("generate-ai-reply", async (raw: GenerateAIReplyPayload) => {
       const parsed = generateAIReplySchema.safeParse(raw);
       if (!parsed.success) {
@@ -380,7 +337,6 @@ export function initSocket(httpServer: HttpServer): SocketServer {
   return io;
 }
 
-/** Call this anywhere on the server to emit events to specific users */
 export function getIO(): SocketServer {
   if (!io) throw new Error("Socket.io has not been initialised yet");
   return io;

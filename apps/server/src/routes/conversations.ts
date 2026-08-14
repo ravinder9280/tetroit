@@ -6,11 +6,6 @@ import type { ConversationDTO } from "@monorepo/types";
 
 const conversationsRouter = Router();
 
-/**
- * GET /v1/conversations
- * List all conversations the caller participates in,
- * each with the other user and the most recent message.
- */
 conversationsRouter.get("/", requireAuth, async (_req, res) => {
   const me = res.locals.user as { id: string };
 
@@ -55,11 +50,6 @@ conversationsRouter.get("/", requireAuth, async (_req, res) => {
   res.json(result);
 });
 
-/**
- * POST /v1/conversations
- * Create a new conversation or return the existing one.
- * Body: { participantId: string }
- */
 conversationsRouter.post("/", requireAuth, async (req, res) => {
   const me = res.locals.user as { id: string };
 
@@ -72,7 +62,6 @@ conversationsRouter.post("/", requireAuth, async (req, res) => {
 
   const { participantId } = parsed.data;
 
-  // Ensure canonical order (smaller id is always participant1)
   const [p1, p2] =
     me.id < participantId ? [me.id, participantId] : [participantId, me.id];
 

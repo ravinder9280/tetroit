@@ -5,11 +5,6 @@ import type { MessageDTO } from "@monorepo/types";
 
 const messagesRouter = Router();
 
-/**
- * GET /v1/conversations/:conversationId/messages
- * Returns up to 50 messages in ascending order (oldest first)
- * so the chat window can render them top-to-bottom.
- */
 messagesRouter.get(
   "/:conversationId/messages",
   requireAuth,
@@ -17,7 +12,6 @@ messagesRouter.get(
     const me = res.locals.user as { id: string };
     const conversationId = req.params["conversationId"] as string;
 
-    // Verify the caller is a participant in this conversation
     const conversation = await prisma.conversation.findFirst({
       where: {
         id: conversationId,
@@ -30,9 +24,6 @@ messagesRouter.get(
       return;
     }
 
-    // Fetch the 50 most-recent messages (desc), then reverse so the UI renders
-    // oldest-first. Using asc+take:50 previously returned only the oldest 50,
-    // causing newer messages to be absent from the DB response.
     const messages = await prisma.message.findMany({
       where: { conversationId: conversationId },
       orderBy: { createdAt: "desc" },

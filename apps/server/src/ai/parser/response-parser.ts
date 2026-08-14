@@ -1,8 +1,3 @@
-// ─── Response Parser ──────────────────────────────────────────────────────────
-// Single responsibility: extract and validate text from a raw Gemini SDK response.
-// Never exposes the raw SDK GenerateContentResult outside this class.
-// Throws typed errors so callers know exactly what went wrong.
-
 import type { GenerateContentResult } from "@google/generative-ai";
 import {
   AIEmptyResponseError,
@@ -13,15 +8,9 @@ import { aiLogger } from "../utils/logger.js";
 const PROVIDER_NAME = "GeminiProvider";
 
 export class ResponseParser {
-  /**
-   * Parse a Gemini GenerateContentResult into a plain string reply.
-   * @throws AIResponseBlockedError if the response was blocked by safety filters
-   * @throws AIEmptyResponseError if no usable text was returned
-   */
   parse(result: GenerateContentResult): string {
     const response = result.response;
 
-    // ── Safety filter / blocked response ─────────────────────────────────────
     const blockReason = response.promptFeedback?.blockReason;
     if (blockReason) {
       aiLogger.warn("Response blocked by safety filter", {
@@ -31,7 +20,6 @@ export class ResponseParser {
       throw new AIResponseBlockedError(PROVIDER_NAME, String(blockReason));
     }
 
-    // ── No candidates ─────────────────────────────────────────────────────────
     const candidates = response.candidates;
     if (!candidates || candidates.length === 0) {
       aiLogger.warn("No candidates in Gemini response");
@@ -40,7 +28,6 @@ export class ResponseParser {
 
     const firstCandidate = candidates[0];
 
-    // ── Candidate finish reason checks ────────────────────────────────────────
     const finishReason = firstCandidate?.finishReason;
     if (finishReason === "SAFETY") {
       throw new AIResponseBlockedError(
@@ -55,7 +42,6 @@ export class ResponseParser {
       );
     }
 
-    // ── Extract text ─────────────────────────────────────────────────────────
     let text: string;
     try {
       text = response.text();

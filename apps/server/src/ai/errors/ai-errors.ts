@@ -1,7 +1,3 @@
-// ─── AI Error Types ───────────────────────────────────────────────────────────
-// Typed errors thrown by providers and parsers.
-// Business logic catches these to decide how to respond gracefully.
-
 export class AIProviderError extends Error {
   constructor(
     message: string,
@@ -40,5 +36,4 @@ export class AITimeoutError extends AIProviderError {
   }
 }
 
-/** Safe user-facing fallback message */
 export const AI_FALLBACK_REPLY = "Unable to generate AI reply.";

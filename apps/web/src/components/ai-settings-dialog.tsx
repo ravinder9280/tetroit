@@ -304,13 +304,13 @@ function AISettingsForm({ onSuccess }: { onSuccess?: () => void }) {
                   icon={WifiOff}
                   onClick={() => field.onChange("WHEN_OFFLINE")}
                 />
-                <TriggerOption
+                {/* <TriggerOption
                   value="AFTER_INACTIVITY"
                   current={field.value as TriggerType}
                   label="After Inactivity"
                   icon={Clock}
                   onClick={() => field.onChange("AFTER_INACTIVITY")}
-                />
+                /> */}
               </div>
             )}
           />

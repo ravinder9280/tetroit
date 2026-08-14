@@ -16,7 +16,6 @@ export async function requireAuth(
     return;
   }
 
-  // Attach the user to the request for downstream handlers
   res.locals.user = session.user;
   next();
 }

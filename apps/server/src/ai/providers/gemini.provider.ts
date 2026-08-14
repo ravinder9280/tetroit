@@ -1,12 +1,3 @@
-// ─── Gemini Provider ──────────────────────────────────────────────────────────
-// Implements LLMProvider using Google's Generative AI SDK.
-//
-// Single responsibility: send a prompt to Gemini and return the text reply.
-// Knows nothing about Socket.IO, Prisma, users, messages, or conversations.
-// All response parsing is delegated to ResponseParser.
-//
-// To replace with another provider, implement LLMProvider and swap here.
-
 import {
   GoogleGenerativeAI,
   HarmBlockThreshold,
@@ -20,8 +11,6 @@ import {
 } from "../errors/ai-errors.js";
 import { aiLogger } from "../utils/logger.js";
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
 function requireEnv(key: string): string {
   const value = process.env[key];
   if (!value) {
@@ -34,8 +23,6 @@ function requireEnv(key: string): string {
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
-// Safety settings — permissive enough for a personal chat assistant.
-// Adjust thresholds if needed.
 const SAFETY_SETTINGS = [
   {
     category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -55,8 +42,6 @@ const SAFETY_SETTINGS = [
   },
 ];
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
-
 export class GeminiProvider implements LLMProvider {
   readonly providerName = "GeminiProvider";
 
@@ -68,21 +53,12 @@ export class GeminiProvider implements LLMProvider {
     const apiKey = requireEnv("GEMINI_API_KEY");
     this.modelName = process.env["GEMINI_MODEL"] ?? DEFAULT_MODEL;
 
-    // Keep the client as a singleton — model instances are cheap and are
-    // created per-call so the systemInstruction is injected correctly.
     this.client = new GoogleGenerativeAI(apiKey);
     this.parser = new ResponseParser();
 
     aiLogger.info(`[AI] GeminiProvider initialised`, { model: this.modelName });
   }
 
-  /**
-   * Generate a reply using Gemini.
-   *
-   * @param systemPrompt - Personality/role context (passed as systemInstruction)
-   * @param userPrompt   - The full conversation + incoming message
-   * @returns Plain text reply
-   */
   async generateReply(
     systemPrompt: string,
     userPrompt: string
@@ -91,9 +67,6 @@ export class GeminiProvider implements LLMProvider {
     const startMs = Date.now();
 
     try {
-      // Create a model instance per call so the systemInstruction is always
-      // set correctly. The SDK recommends this pattern for per-request system
-      // instructions (SDK v0.21+).
       const model = this.client.getGenerativeModel({
         model: this.modelName,
         systemInstruction: systemPrompt,
@@ -104,7 +77,6 @@ export class GeminiProvider implements LLMProvider {
 
       const latencyMs = Date.now() - startMs;
 
-      // ── Log token usage if available ────────────────────────────────────────
       const usageMetadata = result.response.usageMetadata;
       aiLogger.step("GEMINI_RESPONSE", {
         latencyMs,
@@ -113,19 +85,16 @@ export class GeminiProvider implements LLMProvider {
         totalTokens: usageMetadata?.totalTokenCount ?? "n/a",
       });
 
-      // ── Parse and validate the raw SDK response ─────────────────────────────
       aiLogger.info("[AI] Parsing response");
       return this.parser.parse(result);
     } catch (err) {
       const latencyMs = Date.now() - startMs;
 
       if (err instanceof AIProviderError) {
-        // Already a typed error — rethrow so the orchestrator can handle it
         aiLogger.error(`[AI] ${this.providerName} typed error after ${latencyMs}ms`, err);
         throw err;
       }
 
-      // ── Classify common Gemini / network errors ─────────────────────────────
       const message =
         err instanceof Error ? err.message : "Unknown Gemini error";
 
@@ -144,10 +113,6 @@ export class GeminiProvider implements LLMProvider {
   }
 }
 
-// ─── Singleton Factory ────────────────────────────────────────────────────────
-// Creates GeminiProvider once. Throws at first use (not at import-time) so a
-// missing GEMINI_API_KEY only surfaces when an AI message is first triggered.
-
 let _instance: GeminiProvider | null = null;
 
 export function getGeminiProvider(): GeminiProvider {
@@ -157,5 +122,4 @@ export function getGeminiProvider(): GeminiProvider {
   return _instance;
 }
 
-/** Fallback reply exported for use by callers that catch AIProviderError */
 export { AI_FALLBACK_REPLY };

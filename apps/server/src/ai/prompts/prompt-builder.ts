@@ -1,7 +1,3 @@
-// ─── Prompt Builder ───────────────────────────────────────────────────────────
-// Single responsibility: transform an AIContext into system + user prompts.
-// Pure function — no DB calls, no side effects.
-
 import type { AIContext } from "../types/ai-context.type.js";
 
 export interface BuiltPrompt {
@@ -10,15 +6,9 @@ export interface BuiltPrompt {
 }
 
 export class PromptBuilder {
-  /**
-   * Build a system prompt + user prompt from the assembled AIContext.
-   * The prompts are designed so any instruction-following LLM can use them.
-   */
   build(ctx: AIContext): BuiltPrompt {
     const { receiver, aiSettings, conversationHistory, incomingMessage } = ctx;
 
-    // ── System Prompt ─────────────────────────────────────────────────────────
-    // Persona-first framing: the model IS the user, not an AI acting "on behalf"
     const systemParts: string[] = [
       `You are ${receiver.name}. You are a real person having a casual text conversation.`,
       `

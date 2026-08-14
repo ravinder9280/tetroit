@@ -1,7 +1,3 @@
-// ─── AI Pipeline Logger ───────────────────────────────────────────────────────
-// Structured step-by-step logger for the AI pipeline.
-// Each step is emitted in sequence so it's easy to trace the flow in logs.
-
 const STEPS = [
   "INCOMING_MESSAGE",
   "LOADING_PROFILE",
